@@ -19,6 +19,19 @@ void loop(){
 
 }
 
+void write_motors(float angle, int gas){
+	// Converting to radians and
+	// Calculate both X and Y components
+	float x=cos((angle*3.1416)*180)*(gas/100);
+	float y=sin((angle*3.1416)*180)*(gas/100;
+	// Intermidiate step
+	float V=(100-abs(x))*(y/100)+y; // R+L
+	float W=(100-abs(y))*(x/100)+x; // R-L
+	// Final values for the tracks, map it to be a byte for PWM
+	print_right(map(((V+W)/2),-100,100,-255,255));
+	print_left(map(((V-W)/2),-100,100,-255,255));
+}
+
 // Function to print to the left track
 void print_left(int vel){
 	if(vel>=0){
