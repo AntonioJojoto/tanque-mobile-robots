@@ -24,9 +24,28 @@ void setup(){
 void loop(){
   if (stringComplete) {
     //Serial.println(inputString);
-    // If the input data is information about motors
-    if((inputString.toInt()>5)||(inputString.toInt()==0)){
-      Serial.println(inputString);
+    switch(inputString.substring(5).toInt()){
+      case 1:
+        Serial.println("Boton A");
+        break;
+      case 2:
+        Serial.println("Boton B");
+        break;
+      case 3:
+        Serial.println("Boton C");
+        break;
+      case 4:
+        Serial.println("Boton D");
+        break;
+      default:
+        receive_data(inputString);
+    }
+    inputString = "";
+    stringComplete = false;
+  }
+}
+
+void receive_data(String inputString){
       int angulo=(inputString.substring(1,5).toInt())/10;
       Serial.print("Angulo de entrada es ");
       Serial.println(angulo);
@@ -36,14 +55,6 @@ void loop(){
       Serial.println(pedal);
       // Write the data to the motors
       write_motors(angulo,pedal);
-    }
-    // If it is a button
-    else{
-      Serial.println("Instrucción Recibida");
-    }
-    inputString = "";
-    stringComplete = false;
-  }
 }
 
 void write_motors(int angle, int gas){
