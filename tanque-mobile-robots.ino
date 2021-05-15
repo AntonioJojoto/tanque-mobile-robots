@@ -1,3 +1,4 @@
+#include <Servo.h>
 
 //Pins for the motor controller, LM298N
 #define LEFT1 12
@@ -7,6 +8,15 @@
 #define RIGHT1 8
 #define RIGHT2 7
 #define RIGHT 5
+
+// Values for the servos
+#define turrent 3
+#define cannon 11
+
+#define MaxT 
+
+Servo torreta;
+Servo laser;
 
 // Lowest value to get the tank moving
 
@@ -19,6 +29,9 @@ int MIN=50;
 void setup(){
 	// Declare all the tank tracks as outputs
 	for(int i=5;i<=13;i++){ pinMode(i,OUTPUT); }
+	// Attach the servos
+	torreta.attach(turrent);
+	laser.attach(cannon);
 
 	Serial.begin(9600);
  // reserve 200 bytes for the inputString:
@@ -26,8 +39,18 @@ void setup(){
 }
 
 void loop(){
-  if (stringComplete) {
-    Serial.println(inputString);
+ /* if (stringComplete) {
+        inputString = "";
+    stringComplete = false;
+  }
+ */
+
+
+}
+
+// Function to use with BT
+void BT_mode(String inputString){
+	Serial.println(inputString);
     switch(inputString.substring(5).toInt()){
       case 1:
         Serial.println("Boton A");
@@ -41,17 +64,14 @@ void loop(){
         break;
       case 3:
         Serial.println("Boton C");
-        break;
       case 4:
         Serial.println("Boton D");
         break;
       default:
         receive_data(inputString,MIN);
     }
-    inputString = "";
-    stringComplete = false;
-  }
 }
+
 
 void receive_data(String inputString, int MIN){
       int angulo=(inputString.substring(0,4).toInt())/10;
