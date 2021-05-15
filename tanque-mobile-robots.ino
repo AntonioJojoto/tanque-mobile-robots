@@ -13,8 +13,6 @@
 #define turrent 3
 #define cannon 11
 
-#define MaxT 
-
 Servo torreta;
 Servo laser;
 
@@ -39,14 +37,28 @@ void setup(){
 }
 
 void loop(){
- /* if (stringComplete) {
+int dists[18];
+
+
+if (stringComplete) {
+	Serial.println(inputString);
+    switch(inputString.substring(5).toInt()){
+      case 1:
+        Serial.println("Boton A");
+	if(MIN<95){ MIN+=5; digitalWrite(13,LOW);}
+	else{digitalWrite(13,HIGH);}
+        break;
+      case 2:
+        Serial.println("Boton B");
+	if(MIN>10){ MIN-=5; digitalWrite(13,LOW);}
+	else{digitalWrite(13,HIGH);}
+        break;
+
         inputString = "";
     stringComplete = false;
   }
- */
-
-
 }
+
 
 // Function to use with BT
 void BT_mode(String inputString){
