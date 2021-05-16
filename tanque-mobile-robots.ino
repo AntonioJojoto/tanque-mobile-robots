@@ -32,31 +32,17 @@ void setup(){
 	laser.attach(cannon);
 
 	Serial.begin(9600);
- // reserve 200 bytes for the inputString:
-  inputString.reserve(200);
+	// reserve 200 bytes for the inputString:
+	inputString.reserve(200);
 }
 
 void loop(){
-int dists[18];
 
-
-if (stringComplete) {
-	Serial.println(inputString);
-    switch(inputString.substring(5).toInt()){
-      case 1:
-        Serial.println("Boton A");
-	if(MIN<95){ MIN+=5; digitalWrite(13,LOW);}
-	else{digitalWrite(13,HIGH);}
-        break;
-      case 2:
-        Serial.println("Boton B");
-	if(MIN>10){ MIN-=5; digitalWrite(13,LOW);}
-	else{digitalWrite(13,HIGH);}
-        break;
-
-        inputString = "";
-    stringComplete = false;
-  }
+	if (stringComplete) {
+		BT_Mode(inputString);
+		inputString = "";
+		stringComplete = false;
+	}
 }
 
 
