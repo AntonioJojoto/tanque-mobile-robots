@@ -13,6 +13,13 @@
 #define turrent 3
 #define cannon 10
 
+// US
+#define trigger 4
+#define echo 2
+
+#define safe_dist 35
+#define long_dis 60
+
 Servo torreta;
 Servo laser;
 
@@ -31,6 +38,8 @@ String inputString = "";         // a String to hold incoming data
 bool stringComplete = false;  // whether the string is complete
 bool instruction;
 int MIN=55;
+bool autonomo=false;
+bool encontrado=false;
 
 void setup(){
 	// Declare all the tank tracks as outputs
@@ -43,18 +52,74 @@ void setup(){
 		delay(100);
 	}
 
+	pinMode(trigger,OUTPUT);
+	pinMode(echo,INPUT);
+
 	Serial.begin(9600);
 	// reserve 200 bytes for the inputString:
 	inputString.reserve(200);
 }
 
 void loop(){
-
+	// Read the BT string
 	if (stringComplete) {
 		BT_mode(inputString);
 		inputString = "";
 		stringComplete = false;
 	}
+	// Run autonomously
+	if(autonomo){
+		float distancia=measure();
+		Serial.print("Distancia medida: ");
+		Serial.println(distancia);
+		if((distancia<=safe_dist)&&(encontrado==false)){
+			Serial.println("Obstaculo encontrado, buscando camino ...");
+			// Encuentra el mejor angulo
+			write_motors(0,0,50);
+			int ang=turn_angle();
+			write_motors(ang,50,50);
+			encontrado=true;
+
+		}
+		if(distancia>=long_dis){
+			Serial.println("Camino encontrado");
+			write_motors(0,75,50);
+			encontrado=false;
+		}
+		delay(200);
+
+	}
+}
+
+// Function to get the direction to turn
+int turn_angle(void){
+	float izq,der;
+	int angle;
+	// Reset the turret
+	for(int a=90;a>=0;a--){torreta.write(a); delay(10);}
+	// Measure all distances
+	for(int a=0;a<=36;a++){ 
+		torreta.write(a*5); 
+		delay(100); 
+		if(a>=17){izq+=measure();}
+		else{der+=measure();}
+
+	}
+	for(int a=180;a>=90;a--){torreta.write(a); delay(10);}
+
+	if(izq>der){ return 90; }
+	else{ return 270; }
+}
+
+// Function to measure distance
+float measure(void){
+digitalWrite(trigger, LOW);
+delayMicroseconds(2);
+digitalWrite(trigger, HIGH);
+delayMicroseconds(10);
+digitalWrite(trigger, LOW);
+long duration = pulseIn(echo, HIGH);
+return duration/(74*2);
 }
 
 int write_cannon(int angle){
@@ -100,6 +165,12 @@ void BT_mode(String inputString){
 		delay(200/5);
 	}
 	break;
+      case 5:
+	autonomo=true;
+	break;
+      case 6:
+	autonomo=false;
+	write_motors(0,0,50);
       default:
         receive_data(inputString,MIN);
     }
@@ -191,7 +262,7 @@ void print_right(int vel){
 
 /*
   SerialEvent occurs whenever a new data comes in the hardware serial RX. This
-  routine is run between each time loop() runs, so using delay inside loop can
+ ZZ routine is run between each time loop() runs, so using delay inside loop can
   delay response. Multiple bytes of data may be available.
 */
 void serialEvent() {
