@@ -11,10 +11,18 @@
 
 // Values for the servos
 #define turrent 3
-#define cannon 11
+#define cannon 10
 
 Servo torreta;
 Servo laser;
+
+//Min values for the turrent
+#define angle_min 80
+#define angle_max 180
+
+// Degrees for the servos
+int angle_turrent=90;
+int angle_cannon=90;
 
 // Lowest value to get the tank moving
 
@@ -22,7 +30,7 @@ Servo laser;
 String inputString = "";         // a String to hold incoming data
 bool stringComplete = false;  // whether the string is complete
 bool instruction;
-int MIN=50;
+int MIN=55;
 
 void setup(){
 	// Declare all the tank tracks as outputs
@@ -30,6 +38,10 @@ void setup(){
 	// Attach the servos
 	torreta.attach(turrent);
 	laser.attach(cannon);
+	for(int a=90;a>=150;a++){
+		laser.write(a);
+		delay(100);
+	}
 
 	Serial.begin(9600);
 	// reserve 200 bytes for the inputString:
@@ -39,10 +51,22 @@ void setup(){
 void loop(){
 
 	if (stringComplete) {
-		BT_Mode(inputString);
+		BT_mode(inputString);
 		inputString = "";
 		stringComplete = false;
 	}
+}
+
+int write_cannon(int angle){
+	if(angle>angle_max){ return angle_max; }
+	else if(angle<angle_min){return angle_min;}
+	else{laser.write(angle);  return angle;}
+}
+
+int write_torreta(int angle){
+	if(angle>180){ return 180; }
+	else if(angle<0){return 0;}
+	else{torreta.write(angle); return angle;}
 }
 
 
@@ -52,23 +76,36 @@ void BT_mode(String inputString){
     switch(inputString.substring(5).toInt()){
       case 1:
         Serial.println("Boton A");
-	if(MIN<95){ MIN+=5; digitalWrite(13,LOW);}
-	else{digitalWrite(13,HIGH);}
+	angle_cannon+=2;
+	angle_cannon=write_cannon(angle_cannon);
         break;
       case 2:
         Serial.println("Boton B");
-	if(MIN>10){ MIN-=5; digitalWrite(13,LOW);}
-	else{digitalWrite(13,HIGH);}
+	for(int i=0;i<=4;i++){
+		angle_turrent++;
+		angle_turrent=write_torreta(angle_turrent);
+		delay(200/5);
+	}
         break;
       case 3:
         Serial.println("Boton C");
+	angle_cannon-=2;
+	angle_cannon=write_cannon(angle_cannon);
+	break;
       case 4:
         Serial.println("Boton D");
-        break;
+	for(int i=0;i<=4;i++){
+		angle_turrent--;
+		angle_turrent=write_torreta(angle_turrent);
+		delay(200/5);
+	}
+	break;
       default:
         receive_data(inputString,MIN);
     }
 }
+
+
 
 
 void receive_data(String inputString, int MIN){
