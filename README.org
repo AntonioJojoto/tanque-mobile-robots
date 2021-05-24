@@ -1,2 +1,83 @@
-* Tanque Sacioso
-  Probando
+* Tanque Robótica Móvil
+  El objetivo del robot de la asignatura es tener un tanque en miniatura el cual se mueva de forma fluida por cualquier terreno, además se pretende que el tanque tenga una torreta que sea capáz de moverse y disparar (esto es un trabajo más complicado y a futuro). Para ello también se diseño una aplicación que sea permita controlar el tanque por control remoto utilizando un joystick para el movimiento de las orugas y botones para el control de la torreta.
+
+** Materiales
+   + *Chásis de aluminio con motores 12V*: Existen muchos sitios para comparla en línea, hemos elegido este modelo de [[https://www.banggood.com/DIY-Smart-RC-Robot-Tank-Tracked-Car-Chassis-Kit-with-Crawler-p-1257250.html?utm_source=googleshopping&utm_medium=cpc_organic&gmcCountry=ES&utm_content=minha&utm_campaign=minha-es-en-pc&currency=EUR&cur_warehouse=CN&createTmp=1&utm_source=googleshopping&utm_medium=cpc_bgs&utm_content=dcr&utm_campaign=dcr-ssc-es-all-0316&ad_id=425803135184][aliexpress.]] 
+   + *Estructura de madera*: En este caso se ha reciclado la estructura que se había diseñado para un proyecto de tecnología, la guía está colgada en [[https://hackaday.io/project/19942-m808b-coilgun-tank][Hackaday]].
+   + *Batería de plomo de 12 voltios*: Para poder replicar la capacidad de movimiento de un tanque, es importante que la batería sea de alta capacidad, por esto se eligió una batería de plomo de 25Wh, de manera que el tanque tenga autonomía para unas 2 o 3 horas de uso. Además el peso de la misma ayuda a las orugas a tener un buen agarre con el suelo.
+   + *Microcontrolador*: En este proyecto se ha usado un Arduino Uno, realmente cualquiera podría funcionar.
+   + *Servos MG996R*: Deben tener suficiente torque como para mover la torreta y subir el cañon.
+   + *Buck Converter*: Se requiere de un convertidor de voltaje para poder obtener 6V de la batería y alimentar los servos.
+   + *Controlador de Motores L298N*.
+   + *Módulo Bluetooth HC-06*.
+   + *Sensor de distancias HC-SR04*.
+
+** Modo por control remoto
+   Para el control de motores se está utilizando el drive L298N, el cual es capáz de controlar cuatro motores en una dirección o dos motores de forma bidireccional, que es la funcionalidad que se está utilizando en el tanque. Cada motor del driver se controla con tres pines: dos pines de entrada =IN= y un pin de =Enable=, los primeros dos pines se utilizan para indicar la dirección en la cual se tiene que mover el motor, mientras que el tercer pin se conecta a una salida PWM del Arduino para controlar la velocidad con la cual se mueve. Se adjunta la función utilizada para escribir una velocidad al motor izquierdo, la cual acepta valores entre -255 y 255.  
+   #+begin_src c
+     void print_right(int vel){
+	   if(vel>=0){
+		   Serial.println("RIGHT UP");
+		   digitalWrite(RIGHT1,HIGH);
+		   digitalWrite(RIGHT2,LOW);
+	   }
+	   else{
+		   Serial.println("RIGHT DOWN");
+		   digitalWrite(RIGHT1,LOW);
+		   digitalWrite(RIGHT2,HIGH);
+	   }
+	   if(abs(vel)==0){ digitalWrite(RIGHT,LOW); }
+	   else{ analogWrite(RIGHT,abs(vel)); }
+     }
+   #+end_src
+
+   El problema del control remoto surge al querer controlar dos motores con un joystick, ya que de un dos valores (ángulo y velocidad) se debe pasar a dos valores de velocidad que deben de ser escritos a los motores, y dado que este es un tema un poco más complicado de explicar, se adjunta una [[https://home.kendra.com/mauser/joystick.html][guía]] para pasar de coordenadas X e Y a valores de motores. En resumen, el joystick de la aplicación manda al Arduino dos valores, el ángulo y la velocidad. Estos valores son convertidos a coordenadas XY y se pasan a la función que replica las fórmulas de la guía devolviendo los valores finales que serán utilizados en los motores. Es importante también poder mapear estos motores, ya que por la propia fricción, si se les escribe un valor muy bajo no se moverán, haciendo así que los giros no funcionen. Este valor debe de ser ajustado en la variable =MIN=.
+   #+begin_src c
+     void write_motors(int angle, int gas, int MIN){
+	 // Converting to radians and
+	 // Calculate both X and Y components
+	 float y=cos((angle*3.1416)/180)*(gas);
+	 float x=sin((angle*3.1416)/180)*(gas);
+
+
+
+	 // Intermidiate step
+	 float V=(100-abs(x))*(y/100)+y; // R+L
+	 float W=(100-abs(y))*(x/100)+x; // R-L
+	 // Final values for the tracks, map it to be a byte for PWM
+
+	 int R=(V+W)/2;
+	 int L=(V-W)/2;
+
+	 // Print to the motors, but first map according to the minimum value to move the tracks
+	 print_right(map(map_motors(R,MIN),-100,100,-255,255));
+	 print_left(map(map_motors(L,MIN),-100,100,-255,255));
+     }
+   #+end_src
+
+   El control de los servos de la torreta y el cañón es mucho más fácil, ya que simplemente se debe utilizar correctamente las funciones de la librería =Servos.h=. Para hacer que el movimiento de los servos sea más realista, se realizará un seguimiento de trayectoria, de manera que esta no se mueva /a tirones/. Se crea también una función que contenga los valores máximos y mínimos de la torreta, ya que de lo contrario se corre el riesgo de romper los servos.
+   #+begin_src c
+     // Cuando se aprieta el botón de mover la torreta
+     Serial.println("Boton B");
+     // Moverse 5º en 200ms
+     for(int i=0;i<=4;i++){
+	     angle_turrent++;
+	     angle_turrent=write_torreta(angle_turrent);
+	     delay(200/5);
+     }
+
+     // Función para escribir a la torreta
+     // Devuelve el valor máximo o mínimo si son alzanzados.
+     int write_torreta(int angle){
+	     if(angle>180){ return 180; }
+	     else if(angle<0){return 0;}
+	     else{torreta.write(angle); return angle;}
+     }
+   #+end_src
+
+** Modo evasión de obstáculos
+   Para este modo, se utilizará tanto el movimiento de la torreta como el sensor de ultrasonidos para que el robot pueda esquivar obstáculos y moverse por el camino más conveniente, esto es moverse hacia la zona más abierta. El algoritmo tendrá las siguientes fases:
+   
+   1. Movimiento: El robot se moverá hacia delante, hasta que encuentre un objeto delante suya a menos de la distancia segura o =safe_dist=. 
+   2. Reconocimiento: El robot se parará y girará la torreta 180º. Realizando una medición cada 10 grados y le sumará la distancia a dos variables, derecha y izquierda. Una vez haya echo el barrido, comparará estas variables, decidiendo hacia donde girar.
+   3. Búsqueda: El robot girará sobre si mismo en la dirección decidida, midiendo constantemente la distancia hasta encontrar una distancia suficientemente larga o =long_dist=. Pasará al primer estado de nuevo.

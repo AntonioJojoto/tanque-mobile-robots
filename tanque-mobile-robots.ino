@@ -37,7 +37,7 @@ int angle_cannon=90;
 String inputString = "";         // a String to hold incoming data
 bool stringComplete = false;  // whether the string is complete
 bool instruction;
-int MIN=55;
+int MIN=65;
 bool autonomo=false;
 bool encontrado=false;
 
