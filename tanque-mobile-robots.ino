@@ -17,8 +17,8 @@
 #define trigger 4
 #define echo 2
 
-#define safe_dist 35
-#define long_dis 60
+#define safe_dist 25
+#define long_dis 50
 
 Servo torreta;
 Servo laser;
@@ -72,7 +72,7 @@ void loop(){
 		float distancia=measure();
 		Serial.print("Distancia medida: ");
 		Serial.println(distancia);
-		if((distancia<=safe_dist)&&(encontrado==false)){
+		if((distancia<=safe_dist)&&(encontrado==false)&&(distancia>4)){
 			Serial.println("Obstaculo encontrado, buscando camino ...");
 			// Encuentra el mejor angulo
 			write_motors(0,0,50);
@@ -83,7 +83,7 @@ void loop(){
 		}
 		if(distancia>=long_dis){
 			Serial.println("Camino encontrado");
-			write_motors(0,75,50);
+			write_motors(0,50,50);
 			encontrado=false;
 		}
 		delay(200);
