@@ -80,4 +80,70 @@
    
    1. Movimiento: El robot se moverá hacia delante, hasta que encuentre un objeto delante suya a menos de la distancia segura o =safe_dist=. 
    2. Reconocimiento: El robot se parará y girará la torreta 180º. Realizando una medición cada 10 grados y le sumará la distancia a dos variables, derecha y izquierda. Una vez haya echo el barrido, comparará estas variables, decidiendo hacia donde girar.
+      #+begin_src c
+	// Función que devuelve el ángulo hacia donde girar
+	int turn_angle(void){
+		float izq,der;
+		int angle;
+		// Llevar la torreta a 0º lentamente
+		for(int a=90;a>=0;a--){torreta.write(a); delay(10);}
+		// Medir las distancias de 0º a 180º en intervalos de 5º
+		for(int a=0;a<=36;a++){ 
+			torreta.write(a*5); 
+			delay(100); 
+			// Sumar la distancia en la variable correspondiente
+			if(a>=17){izq+=measure();}
+			else{der+=measure();}
+
+		}
+		// Resetear la torreta a 90º
+		for(int a=180;a>=90;a--){torreta.write(a); delay(10);}
+
+		// Según donde esté la mayor distancia, devolver es ángulo
+		if(izq>der){ return 90; }
+		else{ return 270; }
+	}
+      #+end_src
    3. Búsqueda: El robot girará sobre si mismo en la dirección decidida, midiendo constantemente la distancia hasta encontrar una distancia suficientemente larga o =long_dist=. Pasará al primer estado de nuevo.
+   #+begin_src c
+     // Si llega el comando para moverse de forma autónoma
+     if(autonomo){
+	 // Medir la distancia constantemente mientras se mueve hacia delante 
+	 float distancia=measure();
+	 // Comprobar si hay obstaculos
+	 if((distancia<=safe_dist)&&(encontrado==false)&&(distancia>4)){
+		 Serial.println("Obstaculo encontrado, buscando camino ...");
+		 // Si se encuentra un obstaculo
+		 // Encuentra el mejor angulo
+		 write_motors(0,0,50);
+		 int ang=turn_angle();
+		 write_motors(ang,50,50);
+		 encontrado=true;
+	 }
+	 // Una vez se haya decidido el mejor camino, girar hasta encontrar un camino
+	 if(distancia>=long_dis){
+		 Serial.println("Camino encontrado");
+		 write_motors(0,50,50);
+		 encontrado=false;
+	 }
+	 delay(200);
+     }
+   #+end_src
+   
+   Para leer la distancia con el sensor de ultrasonidos, se ha desarrollado un simple función a la cual se llamará para obtener la distancia:
+#+begin_src c
+  // Función para medir la distancia
+  float measure(void){
+      // Enviar el ultrasonido 
+      digitalWrite(trigger, LOW);
+      delayMicroseconds(2);
+      digitalWrite(trigger, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(trigger, LOW);
+      // Esperar a recibir el echo, contar el tiempo que tarda
+      long duration = pulseIn(echo, HIGH);
+      // Utilizando la velocidad del sonido
+      // Pasar de microsegundos a centimetros
+      return duration/(74*2);
+  }
+#+end_src
